@@ -8,6 +8,9 @@ namespace DFT{
 
 using std::vector;
 using std::complex;
+using Datatype=complex<double>;
+template <typename T>
+using Container=vector<T>;
 
 constexpr double PI = std::acos(-1);
 
@@ -18,10 +21,6 @@ complex<double> fracUnityPow(double pow) {
 
 template <typename Impl>
 class TransformerInterface {
-public:
-    using Datatype=complex<double>;
-    template <typename T>
-    using Container=vector<T>;
 protected:
     unsigned dim_;
     Container<Datatype> res_;
@@ -65,8 +64,6 @@ public:
 };
 
 // Example DFT class
-// Must have a dummy constructor for deduction in a main class
-// Params are given via another constructor
 class NaiveDFT: public TransformerInterface<NaiveDFT> {
     std::function<Datatype(const Datatype)> polynom_;
     
