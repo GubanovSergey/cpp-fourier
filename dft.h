@@ -22,22 +22,32 @@ complex<double> fracUnityPow(double pow) {
 template <typename Impl>
 class TransformerInterface {
 protected:
-    unsigned dim_;
+    Container<Datatype> coeffs_;
+    //vector of coefficients for a polynom, f.e.
+    //from lowest degree coefficient to the highest
     Container<Datatype> res_;
+
+    Container<Datatype>::size_type dim() {
+        return coeffs_.size();
+    }
+
 public:
     const Container<Datatype> & results() {//TODO guarantee transform has been done
         return res_;
     }
         
 public:    
-    TransformerInterface(unsigned dim): dim_(dim), res_() {
-        res_.reserve(dim_);
-    } 
+    TransformerInterface(Container<Datatype> &&points_in): coeffs_(points_in), res_() { //TODO rewrite in_points to template
+        auto sz = points_in.size();
+        assert(sz > 0);
+        unsigned nearestUpPow2 = 1<<(1+int(std::log2(sz)-1)); 
+        res_.reserve(nearestUpPow2);
+    }
     
     TransformerInterface & transform() {
         static_cast<Impl *>(this)->doTransform();
         return *this;
-    } //in-place
+    } 
     TransformerInterface & inverseTransform() {
         bool reverse = true;
         static_cast<Impl *>(this)->doTransform(reverse);
@@ -49,43 +59,17 @@ public:
 };
 
 // Perform dft on incoming points
-//TransformerImpl should have non-trivial constructor and optional move constructor 
-//with special params needed
-//Also it have to derive TransformerInterface 
+//TransformerImpl should have a constructor with moved in-coeffs and optional other args by value 
+//TransformerImpl is supposed to derive TransformerInterface<TransformerImpl> 
 template <typename TransformerImpl>
 class FourierTransformer: public TransformerImpl {
     
 public:
     template <typename... Ts>
-    FourierTransformer(Ts... args): TransformerImpl(args...) {}
+    FourierTransformer(Container<Datatype> &&points_in, Ts... args): TransformerImpl(std::move(points_in), args...) {}
     //template <typename... Ts>
     //FourierTransformer(Ts...&& args): TransformerImpl(std::forward<Ts> (args)...) {}
     //TODO how to make optional move semantic???
-};
-
-// Example DFT class
-class NaiveDFT: public TransformerInterface<NaiveDFT> {
-    std::function<Datatype(const Datatype)> polynom_;
-    
-    Datatype calcFourierCoeff(unsigned nCoeff, bool backward) {
-        assert(dim_ > nCoeff);
-        int sign = (backward) ? 1 : -1;
-        int divider = (backward) ? dim_: 1;
-        Datatype nthFourierX = fracUnityPow(nCoeff * sign * 1. / dim_);
-        return polynom_(nthFourierX) / Datatype(divider, 0);
-    }
-public:
-    NaiveDFT(std::function<Datatype(const Datatype)> srcFunc, unsigned dim): TransformerInterface(dim), polynom_(srcFunc) {
-    }
-
-    void doTransform(bool inverse = false) {//TODO make private
-        //naive O(n^2) transform
-        auto writeIter = std::inserter(res_, res_.begin());
-        for (unsigned i = 0; i < dim_; i++) {
-            (*writeIter)++ = calcFourierCoeff(i, inverse);
-        }
-    }
-    void clear() {}
 };
 
 }
