@@ -89,17 +89,17 @@ public:
 
     void doTransform(bool inverse = false) {
     //void fft (vector<base> & a, bool invert) {
-    	int size = dim();
+    	auto size = dim();
 	    res_ = coeffs_; //TODO not do redundant copies, optimise in-place
 
         //extend res_ with zeros to be of pow2 size
-        unsigned reserved = res_.capacity();
-        assert(((reserved -1)&reserved) == 0); //pow of 2, see a constructor in Interface class
-        unsigned iter_num = reserved - size; //or res_.size()
+        unsigned neededSize = 1<<(1+int(std::log2(size-1))); 
+        assert(neededSize>=size);
+        unsigned iter_num = neededSize - size; //or res_.size()
         for (unsigned i = 0; i<iter_num; i++)
             res_.push_back(Datatype());
 
-        doTransformStep(res_.begin(), res_.end(), size, inverse); 
+        doTransformStep(res_.begin(), res_.end(), neededSize, inverse); 
     }//TODO make private 
 };
 

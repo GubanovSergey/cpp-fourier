@@ -15,7 +15,7 @@ std::ostream& operator<< (std::ostream& out, const Container<Datatype>& v) {
 
 
 int main() {
-    vector<complex<double>> coeffs = {{-1, 0.5}, {0, -0.13}, {1,0}, {16.47,0}};
+    vector<complex<double>> coeffs = {{-1, 0.5}, {0, -0.13}, {0,0}, {1,0}, {16.47,0}};
     std::cout << "src polynomial coeffs:\n" << coeffs << std::endl;   
     FourierTransformer<FFT> transformer(std::move(coeffs));
     
