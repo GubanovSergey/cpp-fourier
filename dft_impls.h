@@ -1,46 +1,50 @@
+#ifndef __DFT_IMPLS_H
+#define __DFT_IMPLS_H
 #include "dft.h"
 
 namespace DFT {
 
 // Example DFT class
-class NaiveDFT: public TransformerInterface<NaiveDFT> {
+template <typename PointType>
+class NaiveDFT: public TransformerInterface<PointType, NaiveDFT> {
     Datatype countPolynom(Datatype at) {
         Datatype result(0,0);
         Datatype pt_pow(1,0);
-        for (auto cur: coeffs_) {
+        for (auto cur: this->coeffs_) {
             result += cur*pt_pow;
             pt_pow *= at;
         }
         return result;
     };
-
     Datatype calcFourierCoeff(unsigned nCoeff, bool backward) {
-        auto dim_ = dim();
-        assert(dim_ > nCoeff);
         int sign = (backward) ? 1 : -1;
-        int divider = (backward) ? dim_: 1;
-        Datatype nthFourierX = fracUnityPow(nCoeff * sign * 1. / dim_);
+        int divider = (backward) ? this->size_: 1;
+        Datatype nthFourierX = fracUnityPow(nCoeff * sign * 1. / this->size_);
         return countPolynom(nthFourierX) / Datatype(divider, 0);
     }
 public:
-    NaiveDFT(Container<Datatype> &&points_in): TransformerInterface(std::move(points_in)) {}
+    template <typename RandomAccessIter>
+    NaiveDFT(RandomAccessIter st, RandomAccessIter fin): TransformerInterface<PointType, NaiveDFT>(st, fin) {}
 
-    void doTransform(bool inverse = false) {//TODO make private
+    Container<Datatype> doTransform(bool inverse = false) {//TODO make private
         //naive O(n^2) transform
-        auto dim_ = dim();
-        auto writeIter = std::inserter(res_, res_.begin());
-        for (unsigned i = 0; i < dim_; i++) {
+        Container<Datatype> res;
+        res.reserve(this->size_);
+        auto writeIter = std::inserter(res, res.begin());
+        for (unsigned i = 0; i < this->size_; i++) {
             (*writeIter)++ = calcFourierCoeff(i, inverse);
         }
+        return res;
     }
 };
 
 //Implement a Cooley–Tukey FFT algorithm with a 2-radix butterfly diagram
 //TODO consider specializing "radixness" of a diagram to check perf improvement
-class FFT: public TransformerInterface<FFT> {
+template <typename PointTp>
+class FFT: public TransformerInterface<PointTp, FFT> {
     //dist is index(fin)-index(st)
 template <typename FwdIter>
-    void doTransformStep(FwdIter st, FwdIter fin, unsigned dist, bool inverse) {
+    static void doFFTStep(FwdIter st, FwdIter fin, unsigned dist, bool inverse) {
  	    //TODO this implementation is memory-intensive. Consider making memory-saving one. It will require RandomAccess iterator though
         //TODO type review to separate internal and external types
         //TODO not to be so mad about iterators
@@ -65,8 +69,8 @@ template <typename FwdIter>
             if (index == hw)
                 halfway = cur;
         } 
-        doTransformStep(part0.begin(), part0.end(), dist/2, inverse);
-        doTransformStep(part1.begin(), part1.end(), dist/2, inverse);
+        doFFTStep(part0.begin(), part0.end(), dist/2, inverse);
+        doFFTStep(part1.begin(), part1.end(), dist/2, inverse);
 
         int sign = (inverse ? -1: 1); 
         Datatype unitySqrt = fracUnityPow(sign * 1. / dist);
@@ -85,22 +89,23 @@ template <typename FwdIter>
     }
 
 public:
-    FFT(Container<Datatype> &&points_in): TransformerInterface(std::move(points_in)) {}
+    template <typename RandomAccessIter>
+    FFT(RandomAccessIter st, RandomAccessIter fin): TransformerInterface<PointTp, FFT>(st, fin) {}
 
-    void doTransform(bool inverse = false) {
-    //void fft (vector<base> & a, bool invert) {
-    	auto size = dim();
-	    res_ = coeffs_; //TODO not do redundant copies, optimise in-place
+    Container<Datatype> doTransform(bool inverse = false) {
+	    Container<Datatype> res; //TODO not do redundant copies, optimise in-place
+        res.reserve(this->size_);
+        std::copy(this->coeffs_.begin(), this->coeffs_.end(), std::inserter(res, res.begin()));
 
         //extend res_ with zeros to be of pow2 size
-        unsigned neededSize = 1<<(1+int(std::log2(size-1))); 
-        assert(neededSize>=size);
-        unsigned iter_num = neededSize - size; //or res_.size()
-        for (unsigned i = 0; i<iter_num; i++)
-            res_.push_back(Datatype());
+        unsigned iter_num = this->size_ - this->in_size_; //or res_.size()
+        for (unsigned i = 0; i < iter_num; i++)
+            res.push_back(Datatype());
 
-        doTransformStep(res_.begin(), res_.end(), neededSize, inverse); 
+        doFFTStep(res.begin(), res.end(), this->size_, inverse); 
+        return res;
     }//TODO make private 
 };
 
 }
+#endif

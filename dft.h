@@ -1,8 +1,12 @@
+#ifndef __DFT_H
+#define __DFT_H
+
 #include <cmath>
 #include <cassert>
 #include <functional>
 #include <complex>
 #include <vector>
+#include <algorithm>
 
 namespace DFT{
 
@@ -19,57 +23,41 @@ complex<double> fracUnityPow(double pow) {
     return complex<double>(std::cos(angle), std::sin(angle)); 
 }
 
-template <typename Impl>
+//template <typename PointType> ImplTemplate;
+
+//template <ImplTemplate Impl>
+template <typename PointType, template<typename> class Impl>
 class TransformerInterface {
 protected:
-    Container<Datatype> coeffs_;
+    using SizeType = Container<Datatype>::size_type; 
+    //using PointType
+    SizeType size_;
+    SizeType in_size_;
     //vector of coefficients for a polynom, f.e.
     //from lowest degree coefficient to the highest
-    Container<Datatype> res_;
+    Container<Datatype> coeffs_;
 
-    Container<Datatype>::size_type dim() {
-        return coeffs_.size();
+    template <typename RandomAccessIterator> 
+    TransformerInterface(RandomAccessIterator st, RandomAccessIterator fin): in_size_(fin-st), coeffs_()
+    { 
+        size_ = 1<<(1+int(std::log2(in_size_-1)));//nearest up power of 2
+//TODO reserve may be segregated into policy (we may want not to extend coeffs). Along with extension with zeros in Impl class
+        coeffs_.reserve(size_);
+        std::copy(st, fin, std::inserter(coeffs_, coeffs_.begin())); 
     }
 
-public:
-    const Container<Datatype> & results() {//TODO guarantee transform has been done
-        return res_;
-    }
-        
-public:    
-    TransformerInterface(Container<Datatype> &&points_in): coeffs_(points_in), res_() { //TODO rewrite in_points to template
-        auto sz = points_in.size();
-        assert(sz > 0);
-        unsigned nearestUpPow2 = 1<<(1+int(std::log2(sz)-1)); 
-        res_.reserve(nearestUpPow2);
-    }
-    
-    TransformerInterface & transform() {
-        static_cast<Impl *>(this)->doTransform();
-        return *this;
-    } 
-    TransformerInterface & inverseTransform() {
+public:   //TODO return result - Container <Datatype>
+//TODO make a trick of in-PointType carrying to inverseTransform
+//TODO think of putting the result to user-provided datatype
+    Container<Datatype> transform() {
+        return static_cast<Impl<PointType> *>(this)->doTransform();
+    } //TODO check here
+    Container<Datatype> inverseTransform() {
         bool reverse = true;
-        static_cast<Impl *>(this)->doTransform(reverse);
-        return *this;
+        return static_cast<Impl<PointType> *>(this)->doTransform(reverse);
     } 
-    void clear() {//TODO check if results were read
-        res_.clear();
-    }
-};
-
-// Perform dft on incoming points
-//TransformerImpl should have a constructor with moved in-coeffs and optional other args by value 
-//TransformerImpl is supposed to derive TransformerInterface<TransformerImpl> 
-template <typename TransformerImpl>
-class FourierTransformer: public TransformerImpl {
-    
-public:
-    template <typename... Ts>
-    FourierTransformer(Container<Datatype> &&points_in, Ts... args): TransformerImpl(std::move(points_in), args...) {}
-    //template <typename... Ts>
-    //FourierTransformer(Ts...&& args): TransformerImpl(std::forward<Ts> (args)...) {}
-    //TODO how to make optional move semantic???
 };
 
 }
+
+#endif //__DFT_H
