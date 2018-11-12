@@ -23,9 +23,7 @@ complex<double> fracUnityPow(double pow) {
     return complex<double>(std::cos(angle), std::sin(angle)); 
 }
 
-//template <typename PointType> ImplTemplate;
 
-//template <ImplTemplate Impl>
 template <typename PointType, template<typename> class Impl>
 class TransformerInterface {
 protected:
@@ -43,7 +41,12 @@ protected:
         size_ = 1<<(1+int(std::log2(in_size_-1)));//nearest up power of 2
 //TODO reserve may be segregated into policy (we may want not to extend coeffs). Along with extension with zeros in Impl class
         coeffs_.reserve(size_);
-        std::copy(st, fin, std::inserter(coeffs_, coeffs_.begin())); 
+        
+        auto back_inserter = std::back_inserter(coeffs_);
+        for (auto cur = st; cur!=fin; ++cur) {
+            (*back_inserter)++ = static_cast<Datatype>(*cur);
+        }
+        std::copy(st, fin, std::inserter(coeffs_, coeffs_.begin()));  
     }
 
 public:   //TODO return result - Container <Datatype>
