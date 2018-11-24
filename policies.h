@@ -13,7 +13,9 @@ public:
     template <typename From>
     static To convert(From && val);
 };
+///
 
+//Possible implementation
 template <typename To>
 struct ByImplicitConversion {
 private:
@@ -48,8 +50,8 @@ private:
     using ToType = std::complex<ComplexFP>;
 
 public:
-    template <typename T1, typename T2>
-    static ToType convert(std::pair<T1, T2> && val) {
+    template <typename From>
+    static ToType convert(From && val) {
         return ToType(val.first, val.second);
     }
 };

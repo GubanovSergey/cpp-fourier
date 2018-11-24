@@ -6,20 +6,19 @@
 #include "dft.h"
 
 namespace DFT {
-/*
 // Example DFT class
 template <
     template <typename To> class Conversion = ByImplicitConversion
 >
-class NaiveDFT: private 
+class NaiveDFT: public 
 TransformerBase<
     NaiveDFT<Conversion>, 
     Conversion
 > 
 {
     typedef TransformerBase<NaiveDFT, Conversion> Base;
-    typedef typename Base::PointType              PointType;
-    typedef typename Base::template ContainerType<PointType> Container;
+    typedef DefaultTransformationTypes::PointType           PointType;
+    typedef DefaultTransformationTypes::Container           Container;
 
     PointType countPolynom(PointType at) {
         PointType result(0,0);
@@ -52,22 +51,22 @@ public:
         return res;
     }
 };
-*/
+
 
 //Implement a Cooley–Tukey FFT algorithm with a 2-radix butterfly diagram
 //TODO consider specializing "radixness" of a diagram to check perf improvement
 template <
     template <typename> class Conversion = ByImplicitConversion
 >
-class FFT: public 
+class FFT: public
 TransformerBase<
     FFT<Conversion>,
     Conversion,
     Pow2Extension
 > {
     typedef TransformerBase<FFT, Conversion, Pow2Extension> Base;
-    typedef typename Base::PointType                        PointType;
-    typedef typename Base::template ContainerType<PointType> Container;
+    typedef DefaultTransformationTypes::PointType           PointType;
+    typedef DefaultTransformationTypes::Container           Container;
 
 template <typename FwdIter>
     static void doFFTStep(FwdIter st, FwdIter fin, unsigned dist, bool inverse) {
@@ -116,7 +115,7 @@ template <typename FwdIter>
 
 public:
     template <typename RandomAccessIter>
-    FFT(RandomAccessIter st, RandomAccessIter fin): Base::Base(st, fin) {}
+    FFT(RandomAccessIter st, RandomAccessIter fin): Base(st, fin) {}
 
     Container doTransform(bool inverse = false) {
 	    Container res; //TODO not do redundant copies, optimise in-place
