@@ -1,34 +1,49 @@
 #ifndef __DFT_IMPLS_H
 #define __DFT_IMPLS_H
+
+#include "global.h"
+#include "policies.h"
 #include "dft.h"
 
 namespace DFT {
-
+/*
 // Example DFT class
-template <typename PointType>
-class NaiveDFT: public TransformerInterface<PointType, NaiveDFT> {
-    Datatype countPolynom(Datatype at) {
-        Datatype result(0,0);
-        Datatype pt_pow(1,0);
+template <
+    template <typename To> class Conversion = ByImplicitConversion
+>
+class NaiveDFT: private 
+TransformerBase<
+    NaiveDFT<Conversion>, 
+    Conversion
+> 
+{
+    typedef TransformerBase<NaiveDFT, Conversion> Base;
+    typedef typename Base::PointType              PointType;
+    typedef typename Base::template ContainerType<PointType> Container;
+
+    PointType countPolynom(PointType at) {
+        PointType result(0,0);
+        PointType pt_pow(1,0);
         for (auto cur: this->coeffs_) {
             result += cur*pt_pow;
             pt_pow *= at;
         }
         return result;
-    };
-    Datatype calcFourierCoeff(unsigned nCoeff, bool backward) {
+    }
+
+    PointType calcFourierCoeff(unsigned nCoeff, bool backward) {
         int sign = (backward) ? 1 : -1;
         int divider = (backward) ? this->size_: 1;
-        Datatype nthFourierX = fracUnityPow(nCoeff * sign * 1. / this->size_);
-        return countPolynom(nthFourierX) / Datatype(divider, 0);
+        PointType nthFourierX = fracUnityPow(nCoeff * sign * 1. / this->size_);
+        return countPolynom(nthFourierX) / PointType(divider, 0);
     }
 public:
     template <typename RandomAccessIter>
-    NaiveDFT(RandomAccessIter st, RandomAccessIter fin): TransformerInterface<PointType, NaiveDFT>(st, fin) {}
+    NaiveDFT(RandomAccessIter st, RandomAccessIter fin): Base(st, fin) {}
 
-    Container<Datatype> doTransform(bool inverse = false) {//TODO make private
+    Container doTransform(bool inverse = false) {//TODO make private
         //naive O(n^2) transform
-        Container<Datatype> res;
+        Container res;
         res.reserve(this->size_);
         auto writeIter = std::inserter(res, res.begin());
         for (unsigned i = 0; i < this->size_; i++) {
@@ -37,12 +52,23 @@ public:
         return res;
     }
 };
+*/
 
 //Implement a Cooley–Tukey FFT algorithm with a 2-radix butterfly diagram
 //TODO consider specializing "radixness" of a diagram to check perf improvement
-template <typename PointTp>
-class FFT: public TransformerInterface<PointTp, FFT> {
-    //dist is index(fin)-index(st)
+template <
+    template <typename> class Conversion = ByImplicitConversion
+>
+class FFT: public 
+TransformerBase<
+    FFT<Conversion>,
+    Conversion,
+    Pow2Extension
+> {
+    typedef TransformerBase<FFT, Conversion, Pow2Extension> Base;
+    typedef typename Base::PointType                        PointType;
+    typedef typename Base::template ContainerType<PointType> Container;
+
 template <typename FwdIter>
     static void doFFTStep(FwdIter st, FwdIter fin, unsigned dist, bool inverse) {
  	    //TODO this implementation is memory-intensive. Consider making memory-saving one. It will require RandomAccess iterator though
@@ -53,7 +79,7 @@ template <typename FwdIter>
         assert (fin!=st);
         assert (((dist-1)&dist) == 0); //power of 2
         
-        Container<Datatype> part0,  part1;
+        Container part0,  part1;
         part0.reserve(dist/2); part1.reserve(dist/2);
         
         auto write0 = std::inserter(part0, part0.begin());
@@ -73,8 +99,8 @@ template <typename FwdIter>
         doFFTStep(part1.begin(), part1.end(), dist/2, inverse);
 
         int sign = (inverse ? -1: 1); 
-        Datatype unitySqrt = fracUnityPow(sign * 1. / dist);
-        Datatype sqrtPow(1,0); 
+        PointType unitySqrt = fracUnityPow(sign * 1. / dist);
+        PointType sqrtPow(1,0); 
         
         auto h0_cur = st, h1_cur = halfway; 
         auto p0_cur = part0.begin(), p1_cur = part1.begin();
@@ -90,21 +116,17 @@ template <typename FwdIter>
 
 public:
     template <typename RandomAccessIter>
-    FFT(RandomAccessIter st, RandomAccessIter fin): TransformerInterface<PointTp, FFT>(st, fin) {}
+    FFT(RandomAccessIter st, RandomAccessIter fin): Base::Base(st, fin) {}
 
-    Container<Datatype> doTransform(bool inverse = false) {
-	    Container<Datatype> res; //TODO not do redundant copies, optimise in-place
+    Container doTransform(bool inverse = false) {
+	    Container res; //TODO not do redundant copies, optimise in-place
         res.reserve(this->size_);
         std::copy(this->coeffs_.begin(), this->coeffs_.end(), std::inserter(res, res.begin()));
 
-        //extend res_ with zeros to be of pow2 size
-        unsigned iter_num = this->size_ - this->in_size_; //or res_.size()
-        for (unsigned i = 0; i < iter_num; i++)
-            res.push_back(Datatype());
-
+        //TODO not extend coeffs if not in-place
         doFFTStep(res.begin(), res.end(), this->size_, inverse); 
         return res;
-    }//TODO make private 
+    } 
 };
 
 }
