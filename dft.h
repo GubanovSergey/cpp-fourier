@@ -5,11 +5,10 @@
 #include "policies.h"
 #include "traits.h"
 
-#include <cassert>
-//#include <functional>
 #include <complex>
 #include <vector>
 #include <algorithm>
+//#include <iostream>
 
 namespace DFT {
 
@@ -59,7 +58,14 @@ protected:
         in_size_(std::distance(st, fin)), 
         coeffs_()
     {
-        std::transform(st, fin, std::inserter(coeffs_, coeffs_.begin()), conversionWrapper());
+        if (!std::is_same_v<
+            typename std::iterator_traits<RandomAccessIterator>::value_type,
+            PointType>) {
+            std::transform(st, fin, std::back_inserter(coeffs_), conversionWrapper());
+        } else {
+            std::copy(st, fin, std::back_inserter(coeffs_));
+        }
+        
         prepare();
     }
 
@@ -67,7 +73,6 @@ protected:
         in_size_(coeffs.size()),
         coeffs_(coeffs) 
     {
-        std::for_each(coeffs_.begin(), coeffs_.end(), conversionWrapper());
         prepare();    
     }
 
