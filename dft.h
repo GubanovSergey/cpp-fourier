@@ -36,6 +36,7 @@ protected:
     SizeType in_size_;
     Container coeffs_;
 
+private:
     static auto conversionWrapper() {
         return [](auto && in) {
             return Conversion::convert(std::forward<decltype(in)>(in)); 
@@ -53,19 +54,32 @@ protected:
         } 
     }
 
+    template <typename RAIter>
+    auto coeffs_copy(RAIter st, RAIter fin) ->
+        decltype(std::enable_if_t <
+            std::is_same_v<
+                typename std::iterator_traits<RAIter>::value_type,
+                PointType>
+            >() , void())  {
+        std::copy(st, fin, std::back_inserter(coeffs_));
+    }
+    
+    template <typename RAIter>
+    auto coeffs_copy(RAIter st, RAIter fin) ->
+        decltype(std::enable_if_t <
+            ! std::is_same_v<
+                typename std::iterator_traits<RAIter>::value_type,
+                PointType>
+            > (), void()) {
+        std::transform(st, fin, std::back_inserter(coeffs_), conversionWrapper());
+    }
+protected:
     template <typename RandomAccessIterator> 
     TransformerBase(RandomAccessIterator st, RandomAccessIterator fin): 
         in_size_(std::distance(st, fin)), 
         coeffs_()
     {
-        if (!std::is_same_v<
-            typename std::iterator_traits<RandomAccessIterator>::value_type,
-            PointType>) {
-            std::transform(st, fin, std::back_inserter(coeffs_), conversionWrapper());
-        } else {
-            std::copy(st, fin, std::back_inserter(coeffs_));
-        }
-        
+        coeffs_copy(st, fin);
         prepare();
     }
 
