@@ -3,6 +3,7 @@
 
 #include "global.h"
 
+namespace DFT {
 //____________CONVERSION
 //Just interface to obey by convention => no implementation
 template <typename To>
@@ -65,9 +66,11 @@ size_t NoExtension(size_t in_size) {
 }
 
 size_t Pow2Extension(size_t in_size) {
+    assert(in_size > 1);
     return 1<<(1+int(std::log2(in_size-1)));//nearest up power of 2
 }
 
 //__________\EXTENSION
 
+}
 #endif //DFT_POLICIES_H

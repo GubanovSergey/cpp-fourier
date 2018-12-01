@@ -3,6 +3,7 @@
 #include <vector>
 #include <complex>
 #include <cmath>
+#include <cassert>
 
 
 namespace DFT{
