@@ -37,23 +37,38 @@ protected:
     SizeType in_size_;
     Container coeffs_;
 
-    template <typename RandomAccessIterator> 
-    TransformerBase(RandomAccessIterator st, RandomAccessIterator fin): 
-        in_size_(std::distance(fin,st)), 
-        coeffs_()
-    {
+    static auto conversionWrapper() {
+        return [](auto && in) {
+            return Conversion::convert(std::forward<decltype(in)>(in)); 
+        };
+    } 
+
+    void prepare() {
         size_ = Extension(in_size_);
         assert(size_ >= in_size_);
         coeffs_.reserve(size_);
        
-        using From = typename std::iterator_traits<RandomAccessIterator>::value_type;
-        std::transform(st, fin, std::inserter(coeffs_, coeffs_.begin()), [](auto && in) { 
-            return Conversion::convert(std::forward<decltype(in)>(in)); 
-        });
         for (SizeType rem_fill = size_-in_size_; rem_fill > 0; --rem_fill) {
             auto back_inserter = std::back_inserter(coeffs_);
             (*back_inserter)++ = PointType();
-        }  
+        } 
+    }
+
+    template <typename RandomAccessIterator> 
+    TransformerBase(RandomAccessIterator st, RandomAccessIterator fin): 
+        in_size_(std::distance(st, fin)), 
+        coeffs_()
+    {
+        std::transform(st, fin, std::inserter(coeffs_, coeffs_.begin()), conversionWrapper());
+        prepare();
+    }
+
+    TransformerBase(Container && coeffs):
+        in_size_(coeffs.size()),
+        coeffs_(coeffs) 
+    {
+        std::for_each(coeffs_.begin(), coeffs_.end(), conversionWrapper());
+        prepare();    
     }
 
 public:   

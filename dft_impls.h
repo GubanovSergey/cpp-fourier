@@ -40,6 +40,8 @@ public:
     template <typename RandomAccessIter>
     NaiveDFT(RandomAccessIter st, RandomAccessIter fin): Base(st, fin) {}
 
+    NaiveDFT(Container && coeffs): Base(std::move(coeffs)) {}
+
     Container doTransform(bool inverse = false) {//TODO make private
         //naive O(n^2) transform
         Container res;
@@ -116,13 +118,11 @@ template <typename FwdIter>
 public:
     template <typename RandomAccessIter>
     FFT(RandomAccessIter st, RandomAccessIter fin): Base(st, fin) {}
+    
+    FFT(Container && coeffs): Base(std::move(coeffs)) {}
 
     Container doTransform(bool inverse = false) {
-	    Container res; //TODO not do redundant copies, optimise in-place
-        res.reserve(this->size_);
-        std::copy(this->coeffs_.begin(), this->coeffs_.end(), std::inserter(res, res.begin()));
-
-        //TODO not extend coeffs if not in-place
+        Container res = std::move(this->coeffs_);
         doFFTStep(res.begin(), res.end(), this->size_, inverse); 
         return res;
     } 

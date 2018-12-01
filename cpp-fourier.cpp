@@ -35,12 +35,14 @@ std::ostream& operator<< (std::ostream& out, const ContainerType<DataType>& v) {
 
 int main() {    
 //    vector<std::pair<int, int>> coeffs = {{-1, 0}, {0, -11}, {12,-3}, {1,0}, {2,-7}};
-    vector<complex<double>> coeffs = {{-1, 0.5}, {0, -0.13}, {0,0}, {1,0}, {16.47,0}};
-    
+//    vector<complex<double>> coeffs = {{-1, 0.5}, {0, -0.13}, {0,0}, {1,0}, {16.47,0}};
+  
+    vector<complex<double>> coeffs = {{1}, {3}, {-8}};  
   //  std::cout << "src polynomial coeffs:\n" << coeffs << std::endl;   
-    FFT<> transformer(coeffs.begin(), coeffs.end());//by copy
+    //FFT<ByCastConversion> transformer(coeffs.begin(), coeffs.end());//by copy
 //    FFT<PairConversion> transformer(coeffs.begin(), coeffs.end());
 
+    FFT<> transformer(std::move(coeffs));
     auto result = transformer.transform();
     std::cout << "fourier coeffs:\n" << result << std::endl;   
     
