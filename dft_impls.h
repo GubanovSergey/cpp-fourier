@@ -12,11 +12,12 @@ template <
 >
 class NaiveDFT: public 
 TransformerBase<
-    NaiveDFT<Conversion>, 
-    Conversion
+    NaiveDFT<Conversion>,
+    DefaultTransformationTypes, 
+    Conversion<DefaultTransformationTypes::PointType>
 > 
 {
-    typedef TransformerBase<NaiveDFT, Conversion> Base;
+    typedef TransformerBase<NaiveDFT, DefaultTransformationTypes, Conversion<DefaultTransformationTypes::PointType>> Base;
     typedef DefaultTransformationTypes::PointType           PointType;
     typedef DefaultTransformationTypes::Container           Container;
 
@@ -63,17 +64,17 @@ template <
 class FFT: public
 TransformerBase<
     FFT<Conversion>,
-    Conversion,
+    DefaultTransformationTypes,
+    Conversion<DefaultTransformationTypes::PointType>,
     Pow2Extension
 > {
-    typedef TransformerBase<FFT, Conversion, Pow2Extension> Base;
+    typedef TransformerBase<FFT, DefaultTransformationTypes, Conversion<DefaultTransformationTypes::PointType>, Pow2Extension> Base;
     typedef DefaultTransformationTypes::PointType           PointType;
     typedef DefaultTransformationTypes::Container           Container;
 
 template <typename FwdIter>
     static void doFFTStep(FwdIter st, FwdIter fin, unsigned dist, bool inverse) {
- 	    //TODO this implementation is memory-intensive. Consider making memory-saving one. It will require RandomAccess iterator though
-        //TODO type review to separate internal and external types
+ 	    //TODO this implementation is memory-intensive. Consider making memory-saving one
         //TODO not to be so mad about iterators
         if (dist == 1)
             return;

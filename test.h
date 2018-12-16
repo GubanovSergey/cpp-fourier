@@ -6,7 +6,7 @@
 
 void case1 () {
     using namespace DFT;
-    vector<complex<double>> coeffs = {{1}, {3}, {-8}};  
+    vector<complex<double>> coeffs = {{1}, {3.58}, {-8}};  
     std::cout << "src polynomial coeffs:\n" << coeffs << std::endl;   
 
     FFT<> transformer(std::move(coeffs));
@@ -38,7 +38,22 @@ void case3() {
     vector<int> coeffs = {1,2,3};
     std::cout << "src polynomial coeffs:\n" << coeffs << std::endl;   
     
+    FFT<> transformer(coeffs.begin(), coeffs.end());//by copy
+    auto result = transformer.transform();
+    std::cout << "fourier coeffs:\n" << result << std::endl;   
+    
+    FFT<> transformer2(std::move(result)); 
+    auto backRes = transformer2.inverseTransform();
+    std::cout << "revealed polynomial coeffs:\n" << backRes << std::endl;   
+}
+
+void case4() {
+    using namespace DFT;
+    vector<complex<long double>> coeffs = {{1.5, 1},{2},{3}};
+    std::cout << "src polynomial coeffs:\n" << coeffs << std::endl;   
+    
     FFT<ByCastConversion> transformer(coeffs.begin(), coeffs.end());//by copy
+//implicit causes compile-time error
     auto result = transformer.transform();
     std::cout << "fourier coeffs:\n" << result << std::endl;   
     
@@ -53,6 +68,8 @@ void test_main() {
     case2();
     std::cout << std::endl;
     case3();
+    std::cout << std::endl;
+    case4();
 }
 
 #endif //__DFT_TEST_H

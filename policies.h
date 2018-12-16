@@ -8,7 +8,7 @@ namespace DFT {
 //Just interface to obey by convention => no implementation
 template <typename To>
 class ConversionPolicy {
-private:
+protected:
     ~ConversionPolicy() {}
 public:
     template <typename From>
@@ -19,20 +19,22 @@ public:
 //Possible implementation
 template <typename To>
 struct ByImplicitConversion {
-private:
+protected:
     ~ByImplicitConversion() {}
 public:
+    using ToType=To;
     template <typename From>
     static To convert(From && val) {
-        return To(std::forward<From>(val));
+        return std::forward<From>(val);
     }
 };
 
 template <typename To>
 struct ByCastConversion {
-private:
+protected:
     ~ByCastConversion() {}
 public:
+    using ToType=To;
     template <typename From>
     static To convert(From && val) {
         return static_cast<To>(std::forward<From>(val));
@@ -45,12 +47,10 @@ struct PairConversion;
 
 template <typename ComplexFP>
 struct PairConversion<std::complex<ComplexFP>> {
-private:
+protected:
     ~PairConversion() {}
-
-    using ToType = std::complex<ComplexFP>;
-
 public:
+    using ToType = std::complex<ComplexFP>;
     template <typename From>
     static ToType convert(From && val) {
         return ToType(val.first, val.second);
@@ -60,15 +60,27 @@ public:
 
 //__________EXTENSION
 
-using ExtensionFunc = size_t(*)(size_t);
-size_t NoExtension(size_t in_size) {
-    return in_size;
-}
+//using ExtensionFunc = size_t(*)(size_t);
+struct NoExtension {
+protected:
+    ~NoExtension() {}
+public:
+    template <typename SizeType>
+    static SizeType calcSize(SizeType sz) {
+        return sz;
+    }
+};
 
-size_t Pow2Extension(size_t in_size) {
-    assert(in_size > 1);
-    return 1<<(1+int(std::log2(in_size-1)));//nearest up power of 2
-}
+struct Pow2Extension {
+protected:
+    ~Pow2Extension() {}
+public:
+    template <typename SizeType>
+    static SizeType calcSize(SizeType sz) {
+        assert(sz > 1);
+        return 1<<(1+int(std::log2(sz-1)));//nearest up power of 2
+    }
+};
 
 //__________\EXTENSION
 
