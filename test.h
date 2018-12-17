@@ -2,24 +2,24 @@
 #define __DFT_TEST_H
 
 #include "global.h"
-#include "dft_impls.h"
+#include "transformation.h"
 
 void case1 () {
     using namespace DFT;
     vector<complex<double>> coeffs = {{1}, {3.58}, {-8}};  
     std::cout << "src polynomial coeffs:\n" << coeffs << std::endl;   
 
-    FFT<> transformer(std::move(coeffs));
-    auto result = transformer.transform();
+    Transformation<NaiveDFT<>> transformer;
+    auto result = transformer.transform(std::move(coeffs));
     std::cout << "fourier coeffs:\n" << result << std::endl;   
     
-    FFT<> transformer2(std::make_move_iterator(result.begin()), std::make_move_iterator(result.end())); //by element-wise move
+    /*ITransformation<NaiveDFT, > transformer2(std::make_move_iterator(result.begin()), std::make_move_iterator(result.end())); //by element-wise move
     //here we have result element type - complex<double>, so default ImplicitConvertion may be used
     auto backRes = transformer2.inverseTransform();
-    std::cout << "revealed polynomial coeffs:\n" << backRes << std::endl;   
+    std::cout << "revealed polynomial coeffs:\n" << backRes << std::endl;   */
 }
 
-void case2() {
+/*void case2() {
     using namespace DFT;
     vector<std::pair<int, int>> coeffs = {{-1, 0}, {0, -11}, {12,-3}, {1,0}, {2,-7}};
     std::cout << "src polynomial coeffs:\n" << coeffs << std::endl;   
@@ -60,16 +60,16 @@ void case4() {
     FFT<> transformer2(std::move(result)); 
     auto backRes = transformer2.inverseTransform();
     std::cout << "revealed polynomial coeffs:\n" << backRes << std::endl;   
-}
+}*/
 
 void test_main() {
     case1();
     std::cout << std::endl;
-    case2();
+    /*case2();
     std::cout << std::endl;
     case3();
     std::cout << std::endl;
-    case4();
+    case4();*/
 }
 
 #endif //__DFT_TEST_H

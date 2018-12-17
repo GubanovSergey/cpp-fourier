@@ -1,5 +1,5 @@
-#ifndef __DFT_H
-#define __DFT_H
+#ifndef __DFT_INPUT_H
+#define __DFT_INPUT_H
 
 #include "global.h"
 #include "policies.h"
@@ -8,13 +8,11 @@
 #include <complex>
 #include <vector>
 #include <algorithm>
-//#include <iostream>
+//TODO make a trick of in-PointType carrying to inverseTransform
 
 namespace DFT {
 
 template <
-    class Impl,                                 
-//some Transformation deriving TransformerBase and using its fields and methods
     class TfTypes = DefaultTransformationTypes,
     class Conversion = ByImplicitConversion<typename TfTypes:: PointType>,    
 //Functor to be called on elements of the input Sequence to transform them to PointType
@@ -22,10 +20,9 @@ template <
 //function to determine the size of coeffs_ needed to perform a transform by in size provided
 >
 
-//TODO abstract Impl to any functor
 //TODO work out the link from forward to inverse transform
-class TransformerBase: Extension, 
-                       Conversion 
+class InputAdaptor: Extension, 
+                    Conversion 
 {
 protected:
     //using SizeType = ContainerType<PointType>::size_type;
@@ -35,10 +32,6 @@ protected:
     using Conversion::convert;
     using Extension::calcSize;
 
-    SizeType size_;
-    SizeType in_size_;
-    Container coeffs_;
-
 private:
     static auto conversionWrapper() {
         return [](auto && in) {
@@ -46,52 +39,43 @@ private:
         };
     } 
 
-    void prepare() {
+    static void extend(Container & coeffs) {
         static_assert(std::is_same_v<typename Conversion:: ToType, PointType>);
-        size_ = calcSize(in_size_);
-        assert(size_ >= in_size_);
-        coeffs_.reserve(size_);
+        auto in_size = std::distance(coeffs.begin(), coeffs.end());
+        auto size = calcSize(in_size);
+        assert(size >= in_size);
+        coeffs.reserve(size);
        
-        auto back_inserter = std::back_inserter(coeffs_);
-        for (SizeType rem_fill = size_-in_size_; rem_fill > 0; --rem_fill) {
+        auto back_inserter = std::back_inserter(coeffs);
+        for (SizeType rem_fill = size-in_size; rem_fill > 0; --rem_fill) {
             (*back_inserter)++ = PointType();
         } 
     }
 
 protected:
     template <typename RandomAccessIterator> 
-    TransformerBase(RandomAccessIterator st, RandomAccessIterator fin): 
-        in_size_(std::distance(st, fin)), 
-        coeffs_()
-    {
+    static Container 
+    adaptData(RandomAccessIterator st, RandomAccessIterator fin) {
+        SizeType in_size = std::distance(st, fin); 
+        Container coeffs;
         if constexpr(std::is_same_v<
                 typename std::iterator_traits<RandomAccessIterator>::value_type,
                 PointType>) {
-            std::copy(st, fin, std::back_inserter(coeffs_));
+            std::copy(st, fin, std::back_inserter(coeffs));
         } else {
-            std::transform(st, fin, std::back_inserter(coeffs_), conversionWrapper());
+            std::transform(st, fin, std::back_inserter(coeffs), conversionWrapper());
         }
-        prepare();
+        extend(coeffs);
+        return coeffs;
     }
 
-    TransformerBase(Container && coeffs):
-        in_size_(coeffs.size()),
-        coeffs_(coeffs) 
-    {
-        prepare();    
+    static Container adaptData (Container && in) {
+        Container coeffs = in;
+        extend(coeffs);
+        return coeffs;    
     }
-
-public:   
-//TODO make a trick of in-PointType carrying to inverseTransform
-    Container transform() {
-        return static_cast<Impl *>(this)->doTransform();
-    } 
-    Container inverseTransform() {
-        bool reverse = true;
-        return static_cast<Impl *>(this)->doTransform(reverse);
-    } 
 };
 
 };
 
-#endif //__DFT_H
+#endif //__DFT_INPUT_H

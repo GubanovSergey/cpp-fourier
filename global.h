@@ -20,6 +20,11 @@ using std::complex;
 
 constexpr double PI = std::acos(-1);
 
+template <typename Cont>
+auto containerSize (const Cont & c) {
+    return std::distance(c.cbegin(), c.cend());
+}
+
 complex<double> fracUnityPow(double pow) {
     double angle = 2. * PI * pow;
     return complex<double>(std::cos(angle), std::sin(angle)); 

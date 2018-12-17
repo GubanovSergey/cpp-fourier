@@ -3,59 +3,66 @@
 
 #include "global.h"
 #include "policies.h"
-#include "dft.h"
+
+//TODO finish the idea by implementing outputAdaptor, common transformation class and hiding convert(...) into the common interface
+
 
 namespace DFT {
+template <typename Transformation>
+struct TfReqs {
+    //typedef Extension;
+};
+
 // Example DFT class
 template <
-    template <typename To> class Conversion = ByImplicitConversion
+    class TfTs = DefaultTransformationTypes
 >
-class NaiveDFT: public 
-TransformerBase<
-    NaiveDFT<Conversion>,
-    DefaultTransformationTypes, 
-    Conversion<DefaultTransformationTypes::PointType>
-> 
-{
-    typedef TransformerBase<NaiveDFT, DefaultTransformationTypes, Conversion<DefaultTransformationTypes::PointType>> Base;
-    typedef DefaultTransformationTypes::PointType           PointType;
-    typedef DefaultTransformationTypes::Container           Container;
+class NaiveDFT {
+public:
+    using TfTypes=TfTs;
+    using PointType = typename TfTypes::PointType;
+    using Container = typename TfTypes::Container;
 
-    PointType countPolynom(PointType at) {
+private:
+    PointType countPolynom(Container & pts, PointType at) {
         PointType result(0,0);
         PointType pt_pow(1,0);
-        for (auto cur: this->coeffs_) {
+        for (auto cur: pts) {
             result += cur*pt_pow;
             pt_pow *= at;
         }
         return result;
     }
 
-    PointType calcFourierCoeff(unsigned nCoeff, bool backward) {
+    PointType calcFourierCoeff(Container & pts, unsigned nCoeff, bool backward) {
+        auto size = containerSize(pts) ;
         int sign = (backward) ? 1 : -1;
-        int divider = (backward) ? this->size_: 1;
-        PointType nthFourierX = fracUnityPow(nCoeff * sign * 1. / this->size_);
-        return countPolynom(nthFourierX) / PointType(divider, 0);
+        int divider = (backward) ? size: 1;
+        PointType nthFourierX = fracUnityPow(nCoeff * sign * 1. / size);
+        return countPolynom(pts, nthFourierX) / PointType(divider, 0);
     }
 public:
-    template <typename RandomAccessIter>
-    NaiveDFT(RandomAccessIter st, RandomAccessIter fin): Base(st, fin) {}
-
-    NaiveDFT(Container && coeffs): Base(std::move(coeffs)) {}
-
-    Container doTransform(bool inverse = false) {//TODO make private
+    Container doTransform(Container && in, bool inverse = false) {//TODO make private
         //naive O(n^2) transform
+        Container coeffs = in;
+        auto size = containerSize(coeffs);
+        
         Container res;
-        res.reserve(this->size_);
+        res.reserve(size);
         auto writeIter = std::inserter(res, res.begin());
-        for (unsigned i = 0; i < this->size_; i++) {
-            (*writeIter)++ = calcFourierCoeff(i, inverse);
+        for (unsigned i = 0; i < size; i++) {
+            (*writeIter)++ = calcFourierCoeff(coeffs, i, inverse);
         }
         return res;
     }
 };
 
+template <typename ... Ts>
+struct TfReqs<NaiveDFT<Ts...>> {
+    typedef NoExtension Extension;
+};
 
+/*
 //Implement a Cooley–Tukey FFT algorithm with a 2-radix butterfly diagram
 //TODO consider specializing "radixness" of a diagram to check perf improvement
 template <
@@ -63,7 +70,7 @@ template <
 >
 class FFT: public
 TransformerBase<
-    FFT<Conversion>,
+    FFT,
     DefaultTransformationTypes,
     Conversion<DefaultTransformationTypes::PointType>,
     Pow2Extension
@@ -115,19 +122,26 @@ template <typename FwdIter>
 		    sqrtPow *= unitySqrt;
 	    }
     }
-
+    
+    Container doTransform(bool inverse = false) {
+        Container res = std::move(this->coeffs_);
+        doFFTStep(res.begin(), res.end(), this->size_, inverse); 
+        return res;
+    }
 public:
     template <typename RandomAccessIter>
     FFT(RandomAccessIter st, RandomAccessIter fin): Base(st, fin) {}
     
     FFT(Container && coeffs): Base(std::move(coeffs)) {}
 
-    Container doTransform(bool inverse = false) {
-        Container res = std::move(this->coeffs_);
-        doFFTStep(res.begin(), res.end(), this->size_, inverse); 
-        return res;
-    } 
-};
+    Container transform() {
+        return doTransform();
+    }
 
+    Container inverseTransform() {
+        return doTransform(true);
+    }
+};
+*/
 }
 #endif
